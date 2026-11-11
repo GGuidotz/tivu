@@ -3,7 +3,7 @@
 # Cask di Tivu per il tap GGuidotz/homebrew-tap. Version e sha256 li aggiorna release.sh.
 cask "tivu" do
   version "0.1.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "5859feca121096191f9ef0309649b3a671da46a45f2c1d95c0e7a486d8fed402"
 
   url "https://github.com/GGuidotz/tivu/releases/download/v#{version}/Tivu-#{version}.dmg"
   name "Tivu"
