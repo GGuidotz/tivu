@@ -1,5 +1,13 @@
 # Novità
 
+## 0.1.1 · 2026-11-17
+Più sicurezza per la chiave e per il collegamento con la TV.
+
+### Miglioramenti
+- **Chiave della TV al sicuro.** La chiave di abbinamento sta nel Portachiavi del Mac, non più nelle preferenze. Quella già salvata viene spostata da sola.
+- **Collegamento cifrato.** Se la TV lo permette, Tivu parla con lei in modo cifrato; se il certificato della TV cambia, ti avvisa e chiede di abbinarla di nuovo, senza inviare nulla. Le TV più vecchie continuano a funzionare come prima.
+- **Firma più stretta.** L'app è firmata con l'hardened runtime, che impedisce ad altri programmi di iniettare codice al suo interno.
+
 ## 0.1.0 · 2026-11-11
 La prima versione: il telecomando della TV LG nella barra dei menu.
 

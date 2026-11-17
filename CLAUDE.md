@@ -6,9 +6,14 @@ GGuidotz/nod e GGuidotz/whats-going-on.
 - Compilazione: `./build.sh` (swiftc diretto, niente progetto Xcode). Firma con l'identità locale di Nod
   (~/.nod-signing) se c'è, altrimenti ad hoc: serve perché macOS ricordi il permesso Accessibilità dei tasti volume.
   Prova sul Mac: `./build.sh --install`.
-- `Sources/Core` non importa SwiftUI né AppKit: solo Foundation e socket (TVClient, TVDiscovery, WakeOnLAN).
+- `Sources/Core` non importa SwiftUI né AppKit: solo Foundation, Security, CryptoKit e socket (TVClient, TVDiscovery, WakeOnLAN).
 - Il cavo HDMI non porta comandi su macOS (niente HDMI-CEC, e le TV ignorano DDC): tutto passa dalla rete di casa con
   il protocollo SSAP di webOS (WebSocket sulla porta 3000, abbinamento con richiesta sulla TV e chiave salvata).
+- Firma con hardened runtime (`--options runtime`) ed entitlement in `Resources/Tivu.entitlements`: da aggiornare se
+  l'app usa una risorsa nuova (microfono, calendari, ecc.). Oggi solo Apple Events, per "Aggiorna nel Terminale".
+- Collegamento: prima wss sulla 3001 con certificato fissato al primo uso (impronta SHA-256 in `tvCertFingerprint`),
+  poi ws sulla 3000 solo per le TV che non offrono wss e non sono mai state viste con wss. La chiave di abbinamento sta
+  nel Portachiavi (`Sources/App/Keychain.swift`), mai in UserDefaults.
 - Privacy: il repo è pubblico. Mai indirizzi di rete, indirizzi fisici, chiavi o modelli reali in codice, commenti,
   README, CHANGELOG o report di diagnostica. Solo esempi inventati (192.168.1.20, 42XX650V). La TV abbinata sta in
   UserDefaults, sul Mac.

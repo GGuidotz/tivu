@@ -58,6 +58,7 @@
 "I tasti volume comandano la TV" = "Volume keys control the TV";
 "Il Terminale non ha eseguito il comando: copialo e incollalo tu. (%@)" = "Terminal didn't run the command: copy and paste it yourself. (%@)";
 "Il cavo HDMI porta immagine e suono, ma non i comandi: quelli passano dalla rete di casa. Tutto resta tra il Mac e la TV." = "The HDMI cable carries picture and sound, but not commands: those go over your home network. Everything stays between the Mac and the TV.";
+"Il certificato della TV è cambiato: abbinala di nuovo" = "The TV's certificate has changed: pair it again.";
 "Il report dice versione, Mac, modello e stato della TV, le tue scelte e gli ultimi eventi. Mai indirizzi di rete né la chiave della TV." = "The report lists version, Mac, TV model and state, your choices and recent events. Never network addresses or the TV's key.";
 "Il telecomando della TV, nella barra dei menu." = "Your TV remote, in the menu bar.";
 "Il telecomando della tua TV LG, nella barra dei menu: volume, ingressi, accensione." = "Your LG TV's remote, in the menu bar: volume, inputs, power.";

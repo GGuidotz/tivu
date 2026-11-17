@@ -26,6 +26,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var searching = false
     @Published private(set) var found: [DiscoveredTV] = []
     @Published private(set) var searchedOnce = false
+    /// Il certificato della TV non è più quello fissato: serve abbinarla di nuovo.
+    @Published private(set) var certificateChanged = false
     /// I tasti volume della tastiera arrivano davvero all'app (permesso Accessibilità dato e filtro acceso).
     @Published private(set) var keysRunning = false
     @Published var settingsTab: SettingsTab = .general
@@ -68,6 +70,15 @@ final class AppModel: ObservableObject {
                 self.prefs.clientKey = key
                 diag(.tv, "paired")
             }
+        }
+        client.onFingerprint = { [weak self] fingerprint in
+            MainActor.assumeIsolated {
+                self?.prefs.tvCertFingerprint = fingerprint
+                diag(.tv, "certificate fingerprint saved")
+            }
+        }
+        client.onCertificateChanged = { [weak self] in
+            MainActor.assumeIsolated { self?.certificateChanged = true }
         }
         client.onKeyRejected = { [weak self] in
             MainActor.assumeIsolated {
@@ -126,7 +137,9 @@ final class AppModel: ObservableObject {
         switch tvState {
         case .connecting: return L("Cerco la TV…")
         case .pairing: return L("Accetta la richiesta sulla TV con il telecomando")
-        case .disconnected: return L("Spenta o non raggiungibile")
+        case .disconnected:
+            return certificateChanged ? L("Il certificato della TV è cambiato: abbinala di nuovo")
+                                      : L("Spenta o non raggiungibile")
         case .connected:
             let level = muted ? L("muto") : L("volume %d", volume)
             if let input = currentInput { return "\(input.title) · \(level)" }
@@ -142,6 +155,7 @@ final class AppModel: ObservableObject {
         diag(.tv, "state \(state)")
         switch state {
         case .connected:
+            certificateChanged = false
             connectedOnce = true
             wakeAttempts = 0
             client.inputs { [weak self] list in MainActor.assumeIsolated { self?.inputs = list } }
@@ -161,6 +175,7 @@ final class AppModel: ObservableObject {
 
     func connect() {
         guard let host = prefs.tvHost else { return }
+        client.pinnedFingerprint = prefs.tvCertFingerprint
         client.connect(host: host, clientKey: prefs.clientKey)
     }
 
@@ -234,6 +249,9 @@ final class AppModel: ObservableObject {
         let host = host.trimmingCharacters(in: .whitespaces)
         guard !host.isEmpty else { return }
         if prefs.tvHost != host { prefs.clientKey = nil }
+        // Abbinare di nuovo è la scelta esplicita di fidarsi del certificato che la TV mostra ora.
+        prefs.tvCertFingerprint = nil
+        certificateChanged = false
         prefs.tvHost = host
         prefs.tvName = name
         prefs.tvModel = model
