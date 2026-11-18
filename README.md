@@ -1,6 +1,6 @@
 # Tivu
 
-Il telecomando della tua TV LG, nella barra dei menu del Mac. [English](README.en.md)
+Il telecomando della tua TV LG o Android, nella barra dei menu del Mac. [English](README.en.md)
 
 Colleghi il Mac alla TV con il cavo HDMI e i tasti volume smettono di funzionare: su HDMI macOS li disattiva, e il cavo
 non porta comandi. Tivu parla con la TV sulla rete di casa e ti ridà il volume, gli ingressi e l'accensione, senza
@@ -15,8 +15,9 @@ cercare il telecomando.
 - **Telecomando a scomparsa**: frecce, OK, Indietro, Home e menu rapido, per arrivare alle impostazioni dell'immagine.
 - **Leggero**: non interroga la TV di continuo; è lei ad avvisare quando qualcosa cambia.
 
-Funziona con le TV LG con webOS, sulla stessa rete del Mac. La prima volta la TV chiede di accettare il collegamento
-con il telecomando. Tutto resta tra il Mac e la TV: nessun servizio esterno.
+Funziona con le TV LG con webOS e con le TV Android o Google TV, sulla stessa rete del Mac. La prima volta la TV LG
+chiede di accettare il collegamento con il telecomando; la TV Android mostra un codice di 6 caratteri da scrivere in
+Impostazioni › TV. Tutto resta tra il Mac e la TV: nessun servizio esterno.
 
 ## Installazione
 
@@ -45,4 +46,8 @@ cd tivu
   con il telecomando. In Impostazioni › TV trovi i ritocchi che contano quando alla TV è collegato un computer.
 - L'accensione dalla rete dipende dalla TV e dal router; se non parte, il primo tasto resta quello del telecomando.
 
-Progetto indipendente, non affiliato a LG. Licenza MIT.
+Su Android il volume si regola a passi (il protocollo non ha un "imposta volume") e gli ingressi sono i tasti HDMI 1-4:
+la TV non dice quali ha collegati. Tivu usa il protocollo di telecomando di Google, lo stesso dell'app Google TV sul
+telefono.
+
+Progetto indipendente, non affiliato a LG né a Google. Licenza MIT.

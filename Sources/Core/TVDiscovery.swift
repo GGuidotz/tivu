@@ -9,6 +9,7 @@ public struct DiscoveredTV: Equatable, Identifiable {
     public var name: String        // "[LG] webOS TV"
     public var model: String       // "42XX650V-ZN"
     public var mac: String?        // "aa:bb:cc:dd:ee:ff"
+    public var brand: TVBrand = .lg
     public var id: String { host }
 }
 
@@ -32,6 +33,12 @@ public enum TVDiscovery {
             // che il firewall lascia passare).
             if found.isEmpty {
                 found = scan().map { DiscoveredTV(host: $0, name: "LG TV", model: "", mac: macAddress(of: $0)) }
+            }
+            // Le TV Android / Google TV: bussano alle porte del telecomando (6466) e dell'abbinamento (6467).
+            for host in scan(ports: [6466, 6467]) where !found.contains(where: { $0.host == host }) {
+                var tv = DiscoveredTV(host: host, name: "Android TV", model: "", mac: macAddress(of: host), brand: .android)
+                tv.name = castName(of: host) ?? tv.name
+                found.append(tv)
             }
             found.sort { $0.host.compare($1.host, options: .numeric) == .orderedAscending }
             DispatchQueue.main.async { completion(found) }
@@ -91,8 +98,17 @@ public enum TVDiscovery {
 
     // MARK: - Scansione
 
-    /// Gli indirizzi della rete di casa con aperte tutte e due le porte delle TV webOS (3000 e 3001).
-    private static func scan() -> [String] {
+    /// Il nome che una TV Android dà a se stessa ("TV del salotto"): lo dice il servizio Cast sulla porta 8008.
+    private static func castName(of host: String) -> String? {
+        guard let url = URL(string: "http://\(host):8008/setup/eureka_info?params=name"),
+              let text = fetch(url), let data = text.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let name = json["name"] as? String, !name.isEmpty else { return nil }
+        return name
+    }
+
+    /// Gli indirizzi della rete di casa con aperte tutte le porte indicate (di default quelle delle TV webOS).
+    private static func scan(ports: [UInt16] = [3000, 3001]) -> [String] {
         var candidates: [UInt32] = []
         var list: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&list) == 0 else { return [] }
@@ -113,8 +129,9 @@ public enum TVDiscovery {
             guard broadcast - network >= 2 else { continue }
             for host in (network + 1)..<broadcast where host != ip { candidates.append(host) }
         }
-        let open = reachable(Array(Set(candidates)), port: 3000)
-        return reachable(open, port: 3001).map { host in
+        var open = Array(Set(candidates))
+        for port in ports { open = reachable(open, port: port) }
+        return open.map { host in
             var address = in_addr(s_addr: host.bigEndian)
             var name = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
             inet_ntop(AF_INET, &address, &name, socklen_t(INET_ADDRSTRLEN))

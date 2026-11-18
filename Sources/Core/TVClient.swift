@@ -1,9 +1,12 @@
-// Il collegamento con la TV: il protocollo di rete dei televisori LG con webOS (SSAP, un WebSocket sulla porta 3000).
+// Il collegamento con la TV: il protocollo di rete dei televisori LG con webOS (SSAP, un WebSocket: cifrato sulla
+// porta 3001 quando la TV lo permette, in chiaro sulla 3000 per le TV vecchie).
 // Il cavo HDMI porta solo immagine e suono: macOS non parla HDMI-CEC, quindi volume, ingressi e spegnimento passano
 // dalla rete di casa. La prima volta la TV chiede di accettare il collegamento con il telecomando e dà una chiave,
-// che resta sul Mac. Solo Foundation; tutte le chiamate e le risposte sul thread principale.
+// che resta sul Mac (nel Portachiavi). Solo Foundation, Security e CryptoKit; tutte le chiamate e le risposte sul thread principale.
 
+import CryptoKit
 import Foundation
+import Security
 
 public struct TVInput: Equatable, Identifiable {
     public let id: String        // "HDMI_1"
@@ -33,7 +36,7 @@ public enum TVButton: String, CaseIterable {
     case back = "BACK", home = "HOME", menu = "MENU", exit = "EXIT"
 }
 
-public final class TVClient: NSObject, URLSessionWebSocketDelegate {
+public final class TVClient: NSObject, URLSessionWebSocketDelegate, TVController {
     public private(set) var state = TVState.disconnected { didSet { if state != oldValue { onState?(state) } } }
     public var onState: ((TVState) -> Void)?
     public var onVolume: ((_ volume: Int, _ muted: Bool) -> Void)?
@@ -43,6 +46,16 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
     /// La TV ha rifiutato la chiave salvata (per esempio dopo un ripristino): va dimenticata.
     public var onKeyRejected: (() -> Void)?
     public var onLog: ((String) -> Void)?
+
+    /// L'impronta (SHA-256, esadecimale) del certificato della TV, fissata al primo collegamento cifrato riuscito.
+    /// Chi usa il client la imposta prima di connect(): se c'è, il certificato della TV deve coincidere.
+    public var pinnedFingerprint: String?
+    /// Primo collegamento cifrato riuscito (fiducia al primo uso): l'impronta da salvare per le volte dopo.
+    public var onFingerprint: ((String) -> Void)?
+    /// Il certificato della TV non è quello fissato: nessun dato è stato inviato, e non si ricade sul collegamento in chiaro.
+    public var onCertificateChanged: (() -> Void)?
+    /// Il collegamento in corso è cifrato (wss) e non in chiaro (ws).
+    public private(set) var isSecure = false
 
     private var session: URLSession!
     private var socket: URLSessionWebSocketTask?
@@ -55,6 +68,11 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
     private var keepAlive: Timer?
     private var connectTimeout: Timer?
     private var sentKey = false
+    private var connectHost = ""
+    private var connectKey: String?
+    /// Impronta vista in questo tentativo, ancora da fissare: si salva solo quando la TV ha accettato la registrazione.
+    private var seenFingerprint: String?
+    private var certificateMismatch = false
 
     private static let permissions = [
         "LAUNCH", "LAUNCH_WEBAPP", "APP_TO_APP", "CONTROL_AUDIO", "CONTROL_DISPLAY", "CONTROL_INPUT_JOYSTICK",
@@ -75,19 +93,14 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
 
     public func connect(host: String, clientKey: String?) {
         disconnect()
-        guard let url = URL(string: "ws://\(host):3000") else { return }
         state = .connecting
         sentKey = clientKey != nil
-        let task = session.webSocketTask(with: url)
-        socket = task
-        task.resume()
-        receive(on: task)
-        var payload: [String: Any] = [
-            "pairingType": "PROMPT",
-            "manifest": ["manifestVersion": 1, "permissions": Self.permissions] as [String: Any],
-        ]
-        if let clientKey { payload["client-key"] = clientKey }
-        send(["type": "register", "id": "register", "payload": payload], on: task)
+        connectHost = host
+        connectKey = clientKey
+        seenFingerprint = nil
+        certificateMismatch = false
+        // Prima il collegamento cifrato (wss, porta 3001); se la TV non lo offre si ricade su ws (porta 3000).
+        guard openSocket(secure: true) else { state = .disconnected; return }
         // TV spenta: l'indirizzo non risponde e il tentativo resterebbe appeso a lungo.
         let timer = Timer(timeInterval: 6, repeats: false) { [weak self] _ in
             guard let self, self.state == .connecting else { return }
@@ -96,6 +109,24 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
         }
         RunLoop.main.add(timer, forMode: .common)
         connectTimeout = timer
+    }
+
+    /// Apre il WebSocket e invia la registrazione (con la chiave, se c'è). I dati partono solo a collegamento stabilito:
+    /// con wss, se il certificato non è accettato dal delegato la connessione cade prima di inviare la chiave.
+    private func openSocket(secure: Bool) -> Bool {
+        guard let url = URL(string: secure ? "wss://\(connectHost):3001" : "ws://\(connectHost):3000") else { return false }
+        isSecure = secure
+        let task = session.webSocketTask(with: url)
+        socket = task
+        task.resume()
+        receive(on: task)
+        var payload: [String: Any] = [
+            "pairingType": "PROMPT",
+            "manifest": ["manifestVersion": 1, "permissions": Self.permissions] as [String: Any],
+        ]
+        if let connectKey { payload["client-key"] = connectKey }
+        send(["type": "register", "id": "register", "payload": payload], on: task)
+        return true
     }
 
     public func disconnect() {
@@ -114,6 +145,12 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
 
     private func didRegister() {
         connectTimeout?.invalidate(); connectTimeout = nil
+        // Fiducia al primo uso: la TV ha accettato, quindi il suo certificato è quello giusto. Da ora deve coincidere.
+        if isSecure, pinnedFingerprint == nil, let fingerprint = seenFingerprint {
+            pinnedFingerprint = fingerprint
+            onFingerprint?(fingerprint)
+        }
+        onLog?(isSecure ? "connected over wss" : "connected over plain ws (TV without wss)")
         state = .connected
         // Un collegamento fermo viene chiuso dopo un minuto: una lettura leggera ogni 25 s lo tiene vivo e si accorge
         // subito se la TV è stata spenta.
@@ -248,6 +285,25 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
         if task === pointer {
             pointer = nil
         } else if task === socket {
+            if certificateMismatch {
+                // Certificato diverso da quello fissato: errore chiaro, niente ricaduta su ws.
+                onLog?("TV certificate does not match the pinned one")
+                disconnect()
+                onCertificateChanged?()
+                return
+            }
+            if isSecure, state == .connecting {
+                if pinnedFingerprint != nil {
+                    // La TV è già stata vista con wss: se ora non risponde, ws in chiaro sarebbe un passo indietro.
+                    onLog?("wss unavailable but the TV was pinned: not falling back to ws")
+                    disconnect()
+                } else if !openSocket(secure: false) {
+                    disconnect()
+                } else {
+                    onLog?("wss unavailable: falling back to plain ws")
+                }
+                return
+            }
             onLog?("socket closed: \((error as NSError).domain) \((error as NSError).code)")
             disconnect()
         }
@@ -289,6 +345,32 @@ public final class TVClient: NSObject, URLSessionWebSocketDelegate {
     }
 
     // MARK: - URLSessionWebSocketDelegate
+
+    /// Il certificato della TV è autofirmato: lo si accetta solo se l'impronta SHA-256 del certificato foglia coincide
+    /// con quella fissata (o, la prima volta, la si ricorda per dopo). Vale anche per il socket del puntatore.
+    public func urlSession(_ session: URLSession, didReceive challenge: URLAuthenticationChallenge,
+                           completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let trust = challenge.protectionSpace.serverTrust,
+              let chain = SecTrustCopyCertificateChain(trust) as? [SecCertificate],
+              let leaf = chain.first else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+        let digest = SHA256.hash(data: SecCertificateCopyData(leaf) as Data)
+        let fingerprint = digest.map { String(format: "%02x", $0) }.joined()
+        if let pinned = pinnedFingerprint {
+            if fingerprint == pinned {
+                completionHandler(.useCredential, URLCredential(trust: trust))
+            } else {
+                certificateMismatch = true
+                completionHandler(.cancelAuthenticationChallenge, nil)
+            }
+        } else {
+            seenFingerprint = fingerprint
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        }
+    }
 
     public func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask,
                            didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {

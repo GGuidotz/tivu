@@ -35,6 +35,8 @@
 	<string>© 2026 gguidotz · github.com/GGuidotz/tivu</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Tivu talks to your TV over your home network to change volume and inputs. / Tivu parla con la TV sulla rete di casa per volume e ingressi.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Tivu runs the update command in Terminal, only when you ask. / Tivu esegue nel Terminale il comando di aggiornamento, solo quando lo chiedi tu.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_ssdp._udp</string>

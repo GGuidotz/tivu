@@ -104,6 +104,7 @@ enum DiagnosticsReport {
         row("Model", prefs.tvModel.isEmpty ? "?" : prefs.tvModel)
         row("State", "\(model.tvState)")
         row("Key saved", yesNo(prefs.clientKey != nil))
+        row("Certificate pinned (encrypted link)", yesNo(prefs.tvCertFingerprint != nil))
         row("Hardware address known (power on)", yesNo(prefs.tvMAC != nil))
         row("Inputs", model.inputs.map { "\($0.id)\($0.connected ? "*" : "")" }.joined(separator: ", "))
         row("Current input", model.currentInput?.id ?? "none (TV app or unknown)")

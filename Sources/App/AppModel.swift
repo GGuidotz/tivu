@@ -15,9 +15,14 @@ final class AppModel: ObservableObject {
     let prefs: Preferences
     let updater: Updater
     let audio = AudioOutput()
-    private let client = TVClient()
+    private let lg = TVClient()
+    private let android = AndroidTVClient()
+    /// Il collegamento della TV abbinata, secondo il suo sistema.
+    private var client: TVController { prefs.tvBrand == .android ? android : lg }
 
     @Published private(set) var tvState = TVState.disconnected
+    /// TV Android collegata ma in standby: il collegamento resta, mancano solo volume e ingressi finché non si accende.
+    @Published private(set) var tvAwake = true
     @Published private(set) var volume = 0
     @Published private(set) var muted = false
     @Published private(set) var inputs: [TVInput] = []
@@ -26,6 +31,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var searching = false
     @Published private(set) var found: [DiscoveredTV] = []
     @Published private(set) var searchedOnce = false
+    /// Il certificato della TV non è più quello fissato: serve abbinarla di nuovo.
+    @Published private(set) var certificateChanged = false
     /// I tasti volume della tastiera arrivano davvero all'app (permesso Accessibilità dato e filtro acceso).
     @Published private(set) var keysRunning = false
     @Published var settingsTab: SettingsTab = .general
@@ -51,29 +58,22 @@ final class AppModel: ObservableObject {
         self.prefs = prefs
         updater = Updater(prefs: prefs)
 
-        client.onLog = { message in MainActor.assumeIsolated { diag(.tv, message) } }
-        client.onState = { [weak self] state in MainActor.assumeIsolated { self?.stateChanged(state) } }
-        client.onVolume = { [weak self] volume, muted in
+        for controller in [lg as TVController, android] { wire(controller) }
+        // Solo LG parla in wss: il certificato della TV si fissa al primo uso e un cambio chiede di abbinare di nuovo.
+        lg.onFingerprint = { [weak self] fingerprint in
+            MainActor.assumeIsolated {
+                self?.prefs.tvCertFingerprint = fingerprint
+                diag(.tv, "certificate fingerprint saved")
+            }
+        }
+        lg.onCertificateChanged = { [weak self] in
+            MainActor.assumeIsolated { self?.certificateChanged = true }
+        }
+        android.onAwake = { [weak self] awake in
             MainActor.assumeIsolated {
                 guard let self else { return }
-                self.muted = muted
-                // Mentre trascini il cursore la TV risponde in ritardo: i suoi valori farebbero saltare il cursore.
-                if Date().timeIntervalSince(self.lastLocalVolume) > 0.6 { self.volume = volume }
-            }
-        }
-        client.onForegroundApp = { [weak self] app in MainActor.assumeIsolated { self?.foregroundApp = app } }
-        client.onClientKey = { [weak self] key in
-            MainActor.assumeIsolated {
-                guard let self, self.prefs.clientKey != key else { return }
-                self.prefs.clientKey = key
-                diag(.tv, "paired")
-            }
-        }
-        client.onKeyRejected = { [weak self] in
-            MainActor.assumeIsolated {
-                self?.prefs.clientKey = nil
-                diag(.tv, "saved key rejected: pairing again")
-                self?.connect()
+                self.tvAwake = awake
+                diag(.tv, awake ? "awake" : "standby")
             }
         }
 
@@ -100,6 +100,40 @@ final class AppModel: ObservableObject {
             .store(in: &bag)
     }
 
+    /// Le risposte di un collegamento verso il modello (le stesse per ogni sistema di TV).
+    private func wire(_ controller: TVController) {
+        controller.onLog = { message in MainActor.assumeIsolated { diag(.tv, message) } }
+        controller.onState = { [weak self, weak controller] state in
+            MainActor.assumeIsolated {
+                guard let self, let controller, controller === self.client else { return }
+                self.stateChanged(state)
+            }
+        }
+        controller.onVolume = { [weak self] volume, muted in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.muted = muted
+                // Mentre trascini il cursore la TV risponde in ritardo: i suoi valori farebbero saltare il cursore.
+                if Date().timeIntervalSince(self.lastLocalVolume) > 0.6 { self.volume = volume }
+            }
+        }
+        controller.onForegroundApp = { [weak self] app in MainActor.assumeIsolated { self?.foregroundApp = app } }
+        controller.onClientKey = { [weak self] key in
+            MainActor.assumeIsolated {
+                guard let self, self.prefs.clientKey != key else { return }
+                self.prefs.clientKey = key
+                diag(.tv, "paired")
+            }
+        }
+        controller.onKeyRejected = { [weak self] in
+            MainActor.assumeIsolated {
+                self?.prefs.clientKey = nil
+                diag(.tv, "saved key rejected: pairing again")
+                self?.connect()
+            }
+        }
+    }
+
     func didLaunch() {
         diag(.app, "launched \(appVersion), macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
         updater.start()
@@ -117,17 +151,29 @@ final class AppModel: ObservableObject {
     var hdmiInputs: [TVInput] { inputs.filter { $0.id.uppercased().hasPrefix("HDMI") } }
 
     var tvTitle: String {
+        if prefs.tvBrand == .android {
+            if !prefs.tvName.isEmpty { return prefs.tvName }
+            return prefs.tvModel.isEmpty ? prefs.tvBrand.label : prefs.tvModel
+        }
         if !prefs.tvModel.isEmpty { return "LG \(prefs.tvModel)" }
         return prefs.tvName.isEmpty ? L("TV") : prefs.tvName
     }
+
+    /// La TV risponde ai comandi: collegata e non in standby.
+    var isOn: Bool { tvState == .connected && tvAwake }
 
     var summary: String {
         guard prefs.hasTV else { return L("Nessuna TV abbinata") }
         switch tvState {
         case .connecting: return L("Cerco la TV…")
-        case .pairing: return L("Accetta la richiesta sulla TV con il telecomando")
-        case .disconnected: return L("Spenta o non raggiungibile")
+        case .pairing:
+            return prefs.tvBrand == .android ? L("Scrivi il codice mostrato sulla TV")
+                                             : L("Accetta la richiesta sulla TV con il telecomando")
+        case .disconnected:
+            return certificateChanged ? L("Il certificato della TV è cambiato: abbinala di nuovo")
+                                      : L("Spenta o non raggiungibile")
         case .connected:
+            if !tvAwake { return L("In standby") }
             let level = muted ? L("muto") : L("volume %d", volume)
             if let input = currentInput { return "\(input.title) · \(level)" }
             return L("Accesa") + " · " + level
@@ -142,6 +188,7 @@ final class AppModel: ObservableObject {
         diag(.tv, "state \(state)")
         switch state {
         case .connected:
+            certificateChanged = false
             connectedOnce = true
             wakeAttempts = 0
             client.inputs { [weak self] list in MainActor.assumeIsolated { self?.inputs = list } }
@@ -151,6 +198,7 @@ final class AppModel: ObservableObject {
             rememberMAC()
         case .disconnected:
             inputs = []
+            tvAwake = true
             foregroundApp = ""
             // Tentativo fallito (non una TV che si spegne): forse il router le ha dato un altro indirizzo.
             if previous == .connecting { rediscoverIfMoved() }
@@ -161,6 +209,7 @@ final class AppModel: ObservableObject {
 
     func connect() {
         guard let host = prefs.tvHost else { return }
+        lg.pinnedFingerprint = prefs.tvCertFingerprint
         client.connect(host: host, clientKey: prefs.clientKey)
     }
 
@@ -230,10 +279,15 @@ final class AppModel: ObservableObject {
     }
 
     /// Sceglie una TV trovata (o un indirizzo scritto a mano) e avvia l'abbinamento: la TV mostra la richiesta.
-    func pair(host: String, name: String = "", model: String = "", mac: String? = nil) {
+    func pair(host: String, name: String = "", model: String = "", mac: String? = nil, brand: TVBrand = .lg) {
         let host = host.trimmingCharacters(in: .whitespaces)
         guard !host.isEmpty else { return }
-        if prefs.tvHost != host { prefs.clientKey = nil }
+        if prefs.tvHost != host || prefs.tvBrand != brand { prefs.clientKey = nil }
+        lg.disconnect(); android.disconnect()
+        prefs.tvBrand = brand
+        // Abbinare di nuovo è la scelta esplicita di fidarsi del certificato che la TV mostra ora.
+        prefs.tvCertFingerprint = nil
+        certificateChanged = false
         prefs.tvHost = host
         prefs.tvName = name
         prefs.tvModel = model
@@ -241,8 +295,14 @@ final class AppModel: ObservableObject {
         connect()
     }
 
+    /// Il codice a 6 caratteri che la TV Android mostra durante l'abbinamento. Falso se non può essere quello giusto.
+    @discardableResult
+    func submitPairingCode(_ code: String) -> Bool {
+        android.submitPairingCode(code)
+    }
+
     func forgetTV() {
-        client.disconnect()
+        lg.disconnect(); android.disconnect()
         prefs.forgetTV()
         found = []
         searchedOnce = false
@@ -293,6 +353,8 @@ final class AppModel: ObservableObject {
 
     /// Accende la TV dalla rete e riprova a collegarsi mentre si avvia (ci mette una decina di secondi).
     func turnOn() {
+        // TV Android in standby con il collegamento aperto: basta il tasto di accensione.
+        if prefs.tvBrand == .android, tvState == .connected { android.wake(); return }
         guard let mac = prefs.tvMAC else { ensureConnected(); return }
         let sent = WakeOnLAN.wake(mac: mac)
         diag(.tv, "wake sent: \(sent)")
@@ -316,7 +378,7 @@ final class AppModel: ObservableObject {
 
     /// I tasti della tastiera vanno alla TV: scelta accesa, TV collegata e (se chiesto) audio del Mac in HDMI.
     var keysGoToTV: Bool {
-        guard tvState == .connected else { return false }
+        guard isOn else { return false }
         switch prefs.mediaKeys {
         case .never: return false
         case .always: return true
