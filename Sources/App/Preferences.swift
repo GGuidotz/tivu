@@ -39,8 +39,10 @@ final class Preferences: ObservableObject {
     @Published var tvBrand: TVBrand { didSet { save(tvBrand, "tvBrand") } }
     /// L'indirizzo fisico della TV: serve per accenderla da spenta.
     @Published var tvMAC: String? { didSet { defaults.set(tvMAC, forKey: "tvMAC") } }
-    /// La chiave data dalla TV quando hai accettato il collegamento.
-    @Published var clientKey: String? { didSet { defaults.set(clientKey, forKey: "clientKey") } }
+    /// La chiave data dalla TV quando hai accettato il collegamento: sta nel Portachiavi (Keychain.swift), non qui.
+    @Published var clientKey: String? { didSet { Keychain.save(clientKey) } }
+    /// L'impronta del certificato della TV, fissata al primo collegamento cifrato. Non è un segreto.
+    @Published var tvCertFingerprint: String? { didSet { defaults.set(tvCertFingerprint, forKey: "tvCertFingerprint") } }
 
     init() {
         func load<T: Decodable>(_ key: String, _ fallback: T) -> T {
@@ -59,14 +61,19 @@ final class Preferences: ObservableObject {
         tvModel = d.string(forKey: "tvModel") ?? ""
         tvBrand = load("tvBrand", TVBrand.lg)
         tvMAC = d.string(forKey: "tvMAC")
-        clientKey = d.string(forKey: "clientKey")
+        // Dalla 0.1.0 la chiave stava nelle preferenze: si sposta nel Portachiavi e si toglie da qui.
+        if let legacy = d.string(forKey: "clientKey") {
+            if Keychain.read() != nil || Keychain.save(legacy) { d.removeObject(forKey: "clientKey") }
+        }
+        clientKey = Keychain.read() ?? d.string(forKey: "clientKey")
+        tvCertFingerprint = d.string(forKey: "tvCertFingerprint")
         Localization.language = language
     }
 
     var hasTV: Bool { tvHost != nil }
 
     func forgetTV() {
-        tvHost = nil; tvName = ""; tvModel = ""; tvMAC = nil; clientKey = nil; tvBrand = .lg
+        tvHost = nil; tvName = ""; tvModel = ""; tvMAC = nil; clientKey = nil; tvBrand = .lg; tvCertFingerprint = nil
     }
 
     private func save<T: Encodable>(_ value: T, _ key: String) {

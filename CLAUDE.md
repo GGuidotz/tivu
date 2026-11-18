@@ -6,10 +6,15 @@ GGuidotz/nod e GGuidotz/whats-going-on.
 - Compilazione: `./build.sh` (swiftc diretto, niente progetto Xcode). Firma con l'identità locale di Nod
   (~/.nod-signing) se c'è, altrimenti ad hoc: serve perché macOS ricordi il permesso Accessibilità dei tasti volume.
   Prova sul Mac: `./build.sh --install`.
-- `Sources/Core` non importa SwiftUI né AppKit: solo Foundation, socket, Network e Security (TVClient, AndroidTVClient,
+- `Sources/Core` non importa SwiftUI né AppKit: solo Foundation, socket, Network, Security e CryptoKit (TVClient, AndroidTVClient,
   TVDiscovery, WakeOnLAN). Il modello parla con `TVController`: LG (TVClient) o Android (AndroidTVClient).
 - Il cavo HDMI non porta comandi su macOS (niente HDMI-CEC, e le TV ignorano DDC): tutto passa dalla rete di casa con
   il protocollo SSAP di webOS (WebSocket sulla porta 3000, abbinamento con richiesta sulla TV e chiave salvata).
+- Firma con hardened runtime (`--options runtime`) ed entitlement in `Resources/Tivu.entitlements`: da aggiornare se
+  l'app usa una risorsa nuova (microfono, calendari, ecc.). Oggi solo Apple Events, per "Aggiorna nel Terminale".
+- Collegamento LG: prima wss sulla 3001 con certificato fissato al primo uso (impronta SHA-256 in `tvCertFingerprint`),
+  poi ws sulla 3000 solo per le TV che non offrono wss e non sono mai state viste con wss. La chiave di abbinamento sta
+  nel Portachiavi (`Sources/App/Keychain.swift`), mai in UserDefaults.
 - TV Android / Google TV: protocollo Android TV Remote v2 (protobuf su TLS). Porta 6467 abbinamento: la TV mostra un
   codice esadecimale di 6 caratteri, Tivu manda SHA-256(modulo+esponente del Mac, della TV, codice senza il primo
   byte); porta 6466 telecomando. Identità = certificato autofirmato creato con /usr/bin/openssl in Application
