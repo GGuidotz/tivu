@@ -83,7 +83,7 @@ struct OnboardingView: View {
                 .font(.largeTitle.weight(.semibold))
                 .fontDesign(.rounded)
                 .multilineTextAlignment(.center)
-            Text(L("Il telecomando della tua TV LG, nella barra dei menu: volume, ingressi, accensione."))
+            Text(L("Il telecomando della tua TV, nella barra dei menu: volume, ingressi, accensione."))
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -100,7 +100,7 @@ struct OnboardingView: View {
 
     private var pairing: some View {
         StepPage(symbol: "tv", title: L("Abbina la TV"),
-                 text: L("Accendi la TV, poi cercala. La prima volta ti chiede di accettare con il telecomando: una volta sola.")) {
+                 text: L("Accendi la TV, poi cercala. La prima volta ti chiede di accettare con il telecomando (LG) o mostra un codice da scrivere qui (Android): una volta sola.")) {
             TVFinder(model: model, prefs: prefs)
             Footnote(L("macOS può chiederti di lasciare che Tivu trovi i dispositivi nella rete locale: serve per parlare con la TV."), font: .callout)
         }

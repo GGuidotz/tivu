@@ -33,7 +33,7 @@ public enum TVButton: String, CaseIterable {
     case back = "BACK", home = "HOME", menu = "MENU", exit = "EXIT"
 }
 
-public final class TVClient: NSObject, URLSessionWebSocketDelegate {
+public final class TVClient: NSObject, URLSessionWebSocketDelegate, TVController {
     public private(set) var state = TVState.disconnected { didSet { if state != oldValue { onState?(state) } } }
     public var onState: ((TVState) -> Void)?
     public var onVolume: ((_ volume: Int, _ muted: Bool) -> Void)?

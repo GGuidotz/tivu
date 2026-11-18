@@ -7,7 +7,7 @@
 "Abbina una TV…" = "Pair a TV…";
 "Abbinata e collegata" = "Paired and connected";
 "Accendi la TV" = "Turn the TV on";
-"Accendi la TV, poi cercala. La prima volta ti chiede di accettare con il telecomando: una volta sola." = "Turn the TV on, then search for it. The first time it asks you to accept with the remote: once only.";
+"Accendi la TV, poi cercala. La prima volta ti chiede di accettare con il telecomando (LG) o mostra un codice da scrivere qui (Android): una volta sola." = "Turn the TV on, then search for it. The first time it asks you to accept with the remote (LG) or shows a code to type here (Android): once only.";
 "Accensione dal Mac" = "Power on from the Mac";
 "Accesa" = "On";
 "Accessibilità concessa: i tasti funzionano" = "Accessibility granted: the keys work";
@@ -50,7 +50,7 @@
 "Esci da Tivu" = "Quit Tivu";
 "Feedback" = "Feedback";
 "Formato immagine: Solo ricerca (Just Scan), così i bordi non vengono tagliati." = "Aspect ratio: Just Scan, so the edges aren't cropped.";
-"Funziona con le TV LG con webOS, accese e sulla stessa rete del Mac. La prima volta la TV chiede di accettare il collegamento con il telecomando." = "Works with LG webOS TVs that are on and on the same network as the Mac. The first time, the TV asks you to accept the connection with its remote.";
+"Funziona con le TV LG con webOS e con le TV Android o Google TV, accese e sulla stessa rete del Mac. La prima volta la TV chiede di accettare il collegamento con il telecomando (LG) o mostra un codice da scrivere qui (Android)." = "Works with LG webOS TVs and with Android or Google TVs that are on and on the same network as the Mac. The first time, the TV asks you to accept the connection with its remote (LG) or shows a code to type here (Android).";
 "Generale" = "General";
 "GitHub è il canale preferito: le segnalazioni sono pubbliche, quindi non scrivere dati personali. Per qualcosa di privato usa l'email." = "GitHub is the preferred channel: reports are public, so don't include personal data. For anything private, use email.";
 "Giù" = "Down";
@@ -60,7 +60,7 @@
 "Il cavo HDMI porta immagine e suono, ma non i comandi: quelli passano dalla rete di casa. Tutto resta tra il Mac e la TV." = "The HDMI cable carries picture and sound, but not commands: those go over your home network. Everything stays between the Mac and the TV.";
 "Il report dice versione, Mac, modello e stato della TV, le tue scelte e gli ultimi eventi. Mai indirizzi di rete né la chiave della TV." = "The report lists version, Mac, TV model and state, your choices and recent events. Never network addresses or the TV's key.";
 "Il telecomando della TV, nella barra dei menu." = "Your TV remote, in the menu bar.";
-"Il telecomando della tua TV LG, nella barra dei menu: volume, ingressi, accensione." = "Your LG TV's remote, in the menu bar: volume, inputs, power.";
+"Il telecomando della tua TV, nella barra dei menu: volume, ingressi, accensione." = "Your TV's remote, in the menu bar: volume, inputs, power.";
 "Immagine migliore" = "A better picture";
 "Impostazioni di Tivu" = "Tivu Settings";
 "Impostazioni…" = "Settings…";
@@ -96,7 +96,7 @@
 "Per aggiornare, esegui nel Terminale:" = "To update, run in Terminal:";
 "Per usarla di nuovo dovrai accettare ancora il collegamento con il telecomando." = "To use it again you'll have to accept the connection with the remote once more.";
 "Permesso dato: riapri Tivu per attivare i tasti" = "Permission granted: reopen Tivu to enable the keys";
-"Progetto indipendente, non affiliato a LG. webOS è un marchio di LG Electronics." = "Independent project, not affiliated with LG. webOS is a trademark of LG Electronics.";
+"Progetto indipendente, non affiliato a LG né a Google. webOS è un marchio di LG Electronics; Android TV e Google TV sono marchi di Google LLC." = "Independent project, not affiliated with LG or Google. webOS is a trademark of LG Electronics; Android TV and Google TV are trademarks of Google LLC.";
 "Pronta" = "Ready";
 "Puoi saltare questo passo: il volume si regola comunque dal pannello e con la rotella sopra l'icona nella barra." = "You can skip this step: volume still works from the panel and by scrolling over the menu bar icon.";
 "Quando l'audio del Mac esce dalla TV" = "When the Mac's audio goes to the TV";
@@ -143,3 +143,9 @@
 "macOS può chiederti di lasciare che Tivu trovi i dispositivi nella rete locale: serve per parlare con la TV." = "macOS may ask you to let Tivu find devices on your local network: it's needed to talk to the TV.";
 "muto" = "muted";
 "volume %d" = "volume %d";
+"Scrivi il codice mostrato sulla TV" = "Type the code shown on the TV";
+"In standby" = "On standby";
+"Codice mostrato sulla TV" = "Code shown on the TV";
+"Conferma" = "Confirm";
+"Il codice non è giusto: controlla sulla TV e riprova." = "The code isn't right: check the TV and try again.";
+"È una TV Android o Google TV" = "It's an Android or Google TV";

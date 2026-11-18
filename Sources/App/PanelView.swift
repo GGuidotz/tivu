@@ -12,12 +12,15 @@ struct PanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
+            if prefs.hasTV, model.tvState == .pairing, prefs.tvBrand == .android {
+                PairingCode(model: model)
+            }
             if !prefs.hasTV {
                 Button(L("Abbina una TV…")) { close(); model.showSettings(.tv) }
                     .glassProminentButton()
                     .controlSize(.large)
                     .frame(maxWidth: .infinity)
-            } else if model.tvState == .connected {
+            } else if model.isOn {
                 volume
                 if !model.hdmiInputs.isEmpty { inputs }
                 if prefs.showRemote { RemotePad(model: model) }
@@ -28,6 +31,7 @@ struct PanelView: View {
         .frame(width: 300)
         .animation(.easeInOut(duration: 0.18), value: prefs.showRemote)
         .animation(.easeInOut(duration: 0.18), value: model.tvState)
+        .animation(.easeInOut(duration: 0.18), value: model.tvAwake)
         .id(prefs.language)
     }
 
@@ -48,9 +52,9 @@ struct PanelView: View {
             Spacer(minLength: 0)
             if prefs.hasTV {
                 switch model.tvState {
-                case .connected:
+                case .connected where model.tvAwake:
                     GlassIconButton(symbol: "power", label: L("Spegni la TV")) { model.turnOff() }
-                case .disconnected:
+                case .connected, .disconnected:
                     GlassIconButton(symbol: "power", label: L("Accendi la TV"), tint: .accentColor) { model.turnOn() }
                 default:
                     ProgressView().controlSize(.small)
@@ -107,7 +111,7 @@ struct PanelView: View {
 
     private var footer: some View {
         HStack(spacing: 8) {
-            if prefs.hasTV, model.tvState == .connected {
+            if prefs.hasTV, model.isOn {
                 Button { prefs.showRemote.toggle() } label: {
                     Label(prefs.showRemote ? L("Nascondi il telecomando") : L("Telecomando"),
                           systemImage: prefs.showRemote ? "chevron.up" : "dpad")

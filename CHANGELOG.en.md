@@ -1,5 +1,12 @@
 # What's new
 
+## 0.2.0 · 2026-11-12
+Tivu now also talks to Android and Google TVs.
+
+### New features
+- **Android and Google TVs.** Tivu finds them on your home network next to LG TVs. Pairing happens once: the TV shows a 6-character code, which you type in Settings › TV.
+- **Volume, inputs and remote.** Volume and mute from the keyboard keys, HDMI 1 to 4, arrows, OK, Back, Home and menu, as with LG TVs. On Android the volume moves in steps, and inputs are the HDMI 1-4 keys: the TV doesn't say which ones are connected.
+- **Standby.** If the Android TV is on standby, the panel says so and the power button wakes it.
 ## 0.1.0 · 2026-11-11
 The first version: your LG TV remote in the menu bar.
 

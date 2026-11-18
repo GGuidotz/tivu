@@ -35,6 +35,8 @@ final class Preferences: ObservableObject {
     @Published var tvHost: String? { didSet { defaults.set(tvHost, forKey: "tvHost") } }
     @Published var tvName: String { didSet { defaults.set(tvName, forKey: "tvName") } }
     @Published var tvModel: String { didSet { defaults.set(tvModel, forKey: "tvModel") } }
+    /// Il sistema della TV abbinata: LG webOS (predefinito, come nelle versioni precedenti) o Android TV.
+    @Published var tvBrand: TVBrand { didSet { save(tvBrand, "tvBrand") } }
     /// L'indirizzo fisico della TV: serve per accenderla da spenta.
     @Published var tvMAC: String? { didSet { defaults.set(tvMAC, forKey: "tvMAC") } }
     /// La chiave data dalla TV quando hai accettato il collegamento.
@@ -55,6 +57,7 @@ final class Preferences: ObservableObject {
         tvHost = d.string(forKey: "tvHost")
         tvName = d.string(forKey: "tvName") ?? ""
         tvModel = d.string(forKey: "tvModel") ?? ""
+        tvBrand = load("tvBrand", TVBrand.lg)
         tvMAC = d.string(forKey: "tvMAC")
         clientKey = d.string(forKey: "clientKey")
         Localization.language = language
@@ -63,7 +66,7 @@ final class Preferences: ObservableObject {
     var hasTV: Bool { tvHost != nil }
 
     func forgetTV() {
-        tvHost = nil; tvName = ""; tvModel = ""; tvMAC = nil; clientKey = nil
+        tvHost = nil; tvName = ""; tvModel = ""; tvMAC = nil; clientKey = nil; tvBrand = .lg
     }
 
     private func save<T: Encodable>(_ value: T, _ key: String) {

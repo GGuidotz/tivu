@@ -210,7 +210,7 @@ private struct TVSettings: View {
                 } header: {
                     Text(L("Abbina una TV"))
                 } footer: {
-                    Footnote(L("Funziona con le TV LG con webOS, accese e sulla stessa rete del Mac. La prima volta la TV chiede di accettare il collegamento con il telecomando."))
+                    Footnote(L("Funziona con le TV LG con webOS e con le TV Android o Google TV, accese e sulla stessa rete del Mac. La prima volta la TV chiede di accettare il collegamento con il telecomando (LG) o mostra un codice da scrivere qui (Android)."))
                 }
             }
         }
@@ -251,11 +251,11 @@ struct TVFinder: View {
                     HStack(spacing: 10) {
                         Image(systemName: "tv").foregroundStyle(.tint).frame(width: 22)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(tv.model.isEmpty ? tv.name : "LG \(tv.model)")
+                            Text(tv.brand == .android ? tv.name : (tv.model.isEmpty ? tv.name : "LG \(tv.model)"))
                             Text(tv.host).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                         }
                         Spacer()
-                        Button(L("Abbina")) { model.pair(host: tv.host, name: tv.name, model: tv.model, mac: tv.mac) }
+                        Button(L("Abbina")) { model.pair(host: tv.host, name: tv.name, model: tv.model, mac: tv.mac, brand: tv.brand) }
                             .glassButton()
                     }
                 }
@@ -268,6 +268,10 @@ struct TVFinder: View {
                         .onSubmit { model.pair(host: manual) }
                     Button(L("Abbina")) { model.pair(host: manual) }
                         .disabled(manual.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                if !manual.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Button(L("È una TV Android o Google TV")) { model.pair(host: manual, brand: .android) }
+                        .buttonStyle(.link)
                 }
             }
         }
@@ -295,12 +299,46 @@ struct TVFinder: View {
             }
             Spacer()
         }
+        if model.tvState == .pairing, prefs.tvBrand == .android {
+            PairingCode(model: model)
+        }
         if model.tvState != .connected {
             HStack {
                 Button(L("Riprova")) { model.connect() }
                 Button(L("Scegli un'altra TV")) { model.forgetTV() }
             }
         }
+    }
+}
+
+/// Il codice a 6 caratteri che una TV Android mostra durante l'abbinamento.
+struct PairingCode: View {
+    @ObservedObject var model: AppModel
+    @State private var code = ""
+    @State private var wrong = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                TextField(L("Codice mostrato sulla TV"), text: $code, prompt: Text(verbatim: "A1B2C3"))
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+                    .frame(maxWidth: 200)
+                    .onSubmit(send)
+                Button(L("Conferma"), action: send)
+                    .glassProminentButton()
+                    .disabled(code.trimmingCharacters(in: .whitespaces).count != 6)
+            }
+            if wrong {
+                Text(L("Il codice non è giusto: controlla sulla TV e riprova."))
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
+    private func send() {
+        wrong = !model.submitPairingCode(code)
     }
 }
 
@@ -460,7 +498,7 @@ private struct FeedbackSettings: View {
 
             Section {
                 DeveloperLinks()
-                Footnote(L("Progetto indipendente, non affiliato a LG. webOS è un marchio di LG Electronics."))
+                Footnote(L("Progetto indipendente, non affiliato a LG né a Google. webOS è un marchio di LG Electronics; Android TV e Google TV sono marchi di Google LLC."))
             }
         }
     }

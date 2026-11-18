@@ -1,14 +1,21 @@
 # Tivu
 
-App macOS per la barra dei menu (Swift/SwiftUI, macOS 14+): il telecomando di una TV LG con webOS. Stesso schema di
+App macOS per la barra dei menu (Swift/SwiftUI, macOS 14+): il telecomando di una TV LG con webOS o Android / Google TV. Stesso schema di
 GGuidotz/nod e GGuidotz/whats-going-on.
 
 - Compilazione: `./build.sh` (swiftc diretto, niente progetto Xcode). Firma con l'identità locale di Nod
   (~/.nod-signing) se c'è, altrimenti ad hoc: serve perché macOS ricordi il permesso Accessibilità dei tasti volume.
   Prova sul Mac: `./build.sh --install`.
-- `Sources/Core` non importa SwiftUI né AppKit: solo Foundation e socket (TVClient, TVDiscovery, WakeOnLAN).
+- `Sources/Core` non importa SwiftUI né AppKit: solo Foundation, socket, Network e Security (TVClient, AndroidTVClient,
+  TVDiscovery, WakeOnLAN). Il modello parla con `TVController`: LG (TVClient) o Android (AndroidTVClient).
 - Il cavo HDMI non porta comandi su macOS (niente HDMI-CEC, e le TV ignorano DDC): tutto passa dalla rete di casa con
   il protocollo SSAP di webOS (WebSocket sulla porta 3000, abbinamento con richiesta sulla TV e chiave salvata).
+- TV Android / Google TV: protocollo Android TV Remote v2 (protobuf su TLS). Porta 6467 abbinamento: la TV mostra un
+  codice esadecimale di 6 caratteri, Tivu manda SHA-256(modulo+esponente del Mac, della TV, codice senza il primo
+  byte); porta 6466 telecomando. Identità = certificato autofirmato creato con /usr/bin/openssl in Application
+  Support/Tivu e caricato solo in memoria (da macOS 15). Niente "imposta volume" (si va a passi con i tasti) né elenco ingressi
+  (tasti HDMI 1-4). `remote_start.started` dice se la TV è accesa o in standby. Il nome viene dal servizio Cast
+  (porta 8008). Provato su una TV Google reale; scansione porte 6466 e 6467.
 - Privacy: il repo è pubblico. Mai indirizzi di rete, indirizzi fisici, chiavi o modelli reali in codice, commenti,
   README, CHANGELOG o report di diagnostica. Solo esempi inventati (192.168.1.20, 42XX650V). La TV abbinata sta in
   UserDefaults, sul Mac.
