@@ -93,6 +93,6 @@ struct DeveloperLinks: View {
             Link(destination: Developer.github) { Label("GitHub", systemImage: "chevron.left.forwardslash.chevron.right") }
             Link(destination: URL(string: "mailto:\(Developer.email)")!) { Label(Developer.email, systemImage: "envelope") }
         }
-        .font(.callout)
+        .font(SG.Font.field)
     }
 }

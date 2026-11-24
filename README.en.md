@@ -26,10 +26,10 @@ brew install --cask gguidotz/tap/tivu
 
 Update: `brew update && brew upgrade --cask tivu`.
 
-From source (needs the Xcode command line tools):
+From source (needs the Xcode command line tools; `--recursive` also fetches Sguardo, the shared design system, into `Vendor/Sguardo`: if you already cloned without it, run `git submodule update --init`):
 
 ```
-git clone https://github.com/GGuidotz/tivu.git
+git clone --recursive https://github.com/GGuidotz/tivu.git
 cd tivu
 ./build.sh --install
 ```

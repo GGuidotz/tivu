@@ -1,5 +1,16 @@
 # Novità
 
+## 0.2.1 · 2026-11-24
+Una veste nuova: forme, colori e movimenti di Sguardo, il sistema di design comune alle nostre app, e il colore d'accento a scelta.
+
+### Novità
+- **Colore d'accento a scelta.** In Impostazioni › Generale: il viola dell'icona di Tivu, il colore d'accento di macOS o uno tuo.
+
+### Miglioramenti
+- **Impostazioni ridisegnate.** Righe su un velo traslucido con un filo sottile, menu a capsula e note brevi sotto ogni gruppo. La barra delle schede galleggia in fondo e mostra il nome della scheda scelta; ⌘1…⌘4 funzionano come prima.
+- **Pannello a capsule.** Accendi, muto, ingressi HDMI e telecomando hanno tasti a capsula con riempimento neutro; l'accento resta a ciò che è acceso o scelto, e gli ingressi scelti hanno sempre il segno di spunta.
+- **Guida iniziale e novità.** Titoli più sobri, pulsanti a capsula e passaggi tra una schermata e l'altra con una leggera sfocatura.
+
 ## 0.2.0 · 2026-11-18
 Tivu parla anche con le TV Android e Google TV, e protegge meglio la chiave e il collegamento con la TV.
 

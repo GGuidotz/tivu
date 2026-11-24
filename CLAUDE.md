@@ -28,8 +28,15 @@ GGuidotz/nod e GGuidotz/whats-going-on.
   Controllo: `python3 -I tools/check-strings.py` (legge anche i commenti: negli esempi usa chiavi vere).
 - Versione: `VERSION` + sezione `## <versione> · <data>` in cima a `CHANGELOG.md` (build.sh la richiede) e in
   `CHANGELOG.en.md`.
-- Design: Human Interface Guidelines di Apple; minimal. Liquid Glass sui controlli che galleggiano, sempre dietro
-  `if #available(macOS 26, *)` (`Sources/App/Style.swift`); lo stato scelto mai solo con il colore.
+- Grafica: Sguardo, il sistema di design comune (github.com/GGuidotz/sguardo, submodule in `Vendor/Sguardo`, regole in
+  DESIGN.md e PLAYBOOK.md), compilato insieme all'app da build.sh (`SGUARDO_DIR` per provare il kit locale). Accento
+  predefinito `SG.Accent.tivu` (il viola della barra più alta nell'icona, 0xA85CF6; il verde `Palette.calm` è solo di
+  stato), applicato a ogni vista radice con `.sguardoAccent(default:)`: in Generale la persona sceglie colore
+  dell'app, di sistema o personalizzato (`SGAccentRow`). Impostazioni con `SGPage`/`SGSection`/righe di Sguardo,
+  pulsanti `.buttonStyle(.sgSecondary/.sgPrimary/.sgDestructive)`, barra delle schede `SGFloatingTabBar`; campo di testo
+  `CapsuleField` e tasti del pannello `PanelKeyStyle` stanno in `Sources/App` (Sguardo non li ha). Liquid Glass solo sui
+  controlli che galleggiano (barra delle schede; il pannello è già il vetro del popover), sempre dietro
+  `if #available(macOS 26, *)`; Human Interface Guidelines di Apple; lo stato scelto mai solo con il colore.
 - Interfaccia e messaggi in italiano, niente emoji.
 - Avvio AppKit (`Sources/App/Main.swift`), non `App` di SwiftUI: la voce nella barra è un NSStatusItem, le
   impostazioni una finestra nostra.

@@ -150,3 +150,7 @@
 "Conferma" = "Confirm";
 "Il codice non è giusto: controlla sulla TV e riprova." = "The code isn't right: check the TV and try again.";
 "È una TV Android o Google TV" = "It's an Android or Google TV";
+"Colore d'accento" = "Accent color";
+"Colore dell'app" = "App color";
+"Colore di sistema" = "System color";
+"Personalizzato" = "Custom";

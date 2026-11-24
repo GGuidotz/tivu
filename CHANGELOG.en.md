@@ -1,5 +1,16 @@
 # What's new
 
+## 0.2.1 · 2026-11-24
+A new look: the shapes, colors and motion of Sguardo, the design system shared by our apps, plus a choice of accent color.
+
+### New features
+- **Accent color of your choice.** In Settings › General: the purple of the Tivu icon, the macOS accent color, or your own.
+
+### Improvements
+- **Redesigned settings.** Rows on a translucent layer with a thin outline, capsule menus and short notes under each group. The tab bar floats at the bottom and shows the name of the selected tab; ⌘1…⌘4 work as before.
+- **Capsule panel.** Power, mute, HDMI inputs and the remote have capsule keys on a neutral fill; the accent is kept for what is on or selected, and the selected input always has a checkmark.
+- **Welcome and what's new.** Calmer titles, capsule buttons and a soft blur between screens.
+
 ## 0.2.0 · 2026-11-18
 Tivu now also talks to Android and Google TVs, and better protects the TV key and the connection.
 

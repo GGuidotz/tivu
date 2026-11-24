@@ -27,10 +27,10 @@ brew install --cask gguidotz/tap/tivu
 
 Aggiornamento: `brew update && brew upgrade --cask tivu`.
 
-Dai sorgenti (servono gli strumenti a riga di comando di Xcode):
+Dai sorgenti (servono gli strumenti a riga di comando di Xcode; `--recursive` scarica anche Sguardo, il sistema di design comune, in `Vendor/Sguardo`: se hai già clonato senza, esegui `git submodule update --init`):
 
 ```
-git clone https://github.com/GGuidotz/tivu.git
+git clone --recursive https://github.com/GGuidotz/tivu.git
 cd tivu
 ./build.sh --install
 ```

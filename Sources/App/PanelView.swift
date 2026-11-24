@@ -1,6 +1,7 @@
 // Il pannello: una frase che dice come sta la TV, il volume, gli ingressi HDMI e, a scomparsa, un telecomando
 // essenziale. Minimal: ciò che non serve adesso non si vede. Il fondo è il vetro del popover (macOS 26); i tasti sono
-// di vetro trasparente. Lo stato scelto non è mai detto solo dal colore: c'è sempre un segno di spunta o un testo.
+// capsule di Sguardo (riempimento neutro, l'accento solo per ciò che è acceso o scelto). Lo stato scelto non è mai
+// detto solo dal colore: c'è sempre un segno di spunta o un testo.
 
 import SwiftUI
 
@@ -16,10 +17,10 @@ struct PanelView: View {
                 PairingCode(model: model)
             }
             if !prefs.hasTV {
-                Button(L("Abbina una TV…")) { close(); model.showSettings(.tv) }
-                    .glassProminentButton()
-                    .controlSize(.large)
-                    .frame(maxWidth: .infinity)
+                Button { close(); model.showSettings(.tv) } label: {
+                    Text(L("Abbina una TV…")).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SGCapsuleButtonStyle(.primary, size: .large))
             } else if model.isOn {
                 volume
                 if !model.hdmiInputs.isEmpty { inputs }
@@ -29,9 +30,10 @@ struct PanelView: View {
         }
         .padding(16)
         .frame(width: 300)
-        .animation(.easeInOut(duration: 0.18), value: prefs.showRemote)
-        .animation(.easeInOut(duration: 0.18), value: model.tvState)
-        .animation(.easeInOut(duration: 0.18), value: model.tvAwake)
+        .animation(SG.Motion.snappy, value: prefs.showRemote)
+        .animation(SG.Motion.snappy, value: model.tvState)
+        .animation(SG.Motion.snappy, value: model.tvAwake)
+        .sguardoAccent(default: .tivu)
         .id(prefs.language)
     }
 
@@ -41,11 +43,12 @@ struct PanelView: View {
         HStack(alignment: .center, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.tvTitle)
-                    .font(.headline)
+                    .font(SG.Font.bodyEmphasis)
+                    .foregroundStyle(SG.Ink.primary)
                     .lineLimit(1)
                 Text(model.summary)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(SG.Font.field)
+                    .foregroundStyle(SG.Ink.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .combine)
@@ -53,9 +56,9 @@ struct PanelView: View {
             if prefs.hasTV {
                 switch model.tvState {
                 case .connected where model.tvAwake:
-                    GlassIconButton(symbol: "power", label: L("Spegni la TV")) { model.turnOff() }
+                    RoundIconButton(symbol: "power", label: L("Spegni la TV")) { model.turnOff() }
                 case .connected, .disconnected:
-                    GlassIconButton(symbol: "power", label: L("Accendi la TV"), tint: .accentColor) { model.turnOn() }
+                    RoundIconButton(symbol: "power", label: L("Accendi la TV"), prominent: true) { model.turnOn() }
                 default:
                     ProgressView().controlSize(.small)
                 }
@@ -65,46 +68,43 @@ struct PanelView: View {
 
     private var volume: some View {
         HStack(spacing: 10) {
-            GlassIconButton(symbol: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
+            RoundIconButton(symbol: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill",
                             label: model.muted ? L("Riattiva l'audio") : L("Muto"),
-                            tint: model.muted ? .accentColor : nil) { model.toggleMute() }
+                            selected: model.muted) { model.toggleMute() }
             Slider(value: Binding(get: { Double(model.volume) }, set: { model.setVolume(Int($0.rounded())) }),
                    in: 0...100)
                 .accessibilityLabel(L("Volume della TV"))
                 .accessibilityValue("\(model.volume)")
             Text("\(model.volume)")
-                .font(.body.weight(.medium))
-                .monospacedDigit()
+                .font(SG.Font.value)
+                .lineLimit(1)
+                .fixedSize()
                 .frame(width: 30, alignment: .trailing)
-                .foregroundStyle(model.muted ? .secondary : .primary)
+                .foregroundStyle(model.muted ? SG.Ink.secondary : SG.Ink.primary)
                 .accessibilityHidden(true)
         }
     }
 
     private var inputs: some View {
-        GlassGroup(spacing: 6) {
-            HStack(spacing: 6) {
-                ForEach(model.hdmiInputs) { input in
-                    let selected = model.currentInput == input
-                    Button { model.switchInput(input) } label: {
-                        HStack(spacing: 4) {
-                            if selected {
-                                Image(systemName: "checkmark").font(.caption.weight(.bold))
-                            }
-                            Text(input.title)
-                                .font(.callout.weight(selected ? .semibold : .regular))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
+        HStack(spacing: 6) {
+            ForEach(model.hdmiInputs) { input in
+                let selected = model.currentInput == input
+                Button { model.switchInput(input) } label: {
+                    HStack(spacing: 4) {
+                        if selected {
+                            Image(systemName: "checkmark").font(.system(size: 10, weight: .bold))
                         }
-                        .frame(maxWidth: .infinity, minHeight: 30)
-                        .contentShape(Capsule())
+                        Text(input.title)
+                            .font(selected ? SG.Font.label : SG.Font.field)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
-                    .buttonStyle(.plain)
-                    .clearGlass(in: Capsule(), tint: selected ? .accentColor : nil)
-                    .accessibilityLabel(input.title)
-                    .help(input.label)
-                    .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
+                    .frame(maxWidth: .infinity, minHeight: 30)
                 }
+                .buttonStyle(PanelKeyStyle(shape: Capsule(), selected: selected))
+                .accessibilityLabel(input.title)
+                .help(input.label)
+                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
             }
         }
     }
@@ -115,17 +115,17 @@ struct PanelView: View {
                 Button { prefs.showRemote.toggle() } label: {
                     Label(prefs.showRemote ? L("Nascondi il telecomando") : L("Telecomando"),
                           systemImage: prefs.showRemote ? "chevron.up" : "dpad")
-                        .font(.callout)
+                        .font(SG.Font.field)
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(SG.Ink.secondary)
             }
             Spacer()
             Button { close(); model.showSettings(nil) } label: {
-                Image(systemName: "gearshape").font(.callout)
+                Image(systemName: "gearshape").font(SG.Font.body)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(SG.Ink.secondary)
             .keyboardShortcut(",", modifiers: .command)
             .help(L("Impostazioni…"))
             .accessibilityLabel(L("Impostazioni…"))
@@ -133,11 +133,36 @@ struct PanelView: View {
     }
 }
 
-/// Un tasto rotondo di vetro trasparente con un simbolo.
-struct GlassIconButton: View {
+/// Il riempimento di un tasto del pannello: neutro (Sguardo); scelto = velo e filo dell'accento; principale = accento
+/// pieno con testo bianco. Niente vetro: il pannello è già il vetro del popover.
+struct PanelKeyStyle<S: InsettableShape>: ButtonStyle {
+    var shape: S
+    var selected = false
+    var prominent = false
+    @Environment(\.sgAccent) private var accent
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(prominent ? SG.Ink.onAccent : SG.Ink.primary)
+            .background(shape.fill(prominent ? accent.base : SG.Fill.neutralButton))
+            .overlay(shape.fill(selected ? accent.selectedWash : .clear))
+            .overlay(shape.strokeBorder(accent.base, lineWidth: selected ? 1.5 : 0))
+            .contentShape(shape)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .brightness(configuration.isPressed ? -0.04 : 0)
+            .opacity(isEnabled ? 1 : SG.Motion.disabledOpacity)
+            .animation(SG.Motion.snappy, value: configuration.isPressed)
+            .animation(SG.Motion.snappy, value: selected)
+    }
+}
+
+/// Un tasto rotondo con un simbolo.
+struct RoundIconButton: View {
     var symbol: String
     var label: String
-    var tint: Color?
+    var selected = false
+    var prominent = false
     var size: CGFloat = 32
     var action: () -> Void
 
@@ -146,10 +171,8 @@ struct GlassIconButton: View {
             Image(systemName: symbol)
                 .font(.system(size: size * 0.42, weight: .medium))
                 .frame(width: size, height: size)
-                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .clearGlass(in: Circle(), tint: tint)
+        .buttonStyle(PanelKeyStyle(shape: Circle(), selected: selected, prominent: prominent))
         .help(label)
         .accessibilityLabel(label)
     }
@@ -163,26 +186,24 @@ private struct RemotePad: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        GlassGroup(spacing: 8) {
-            Grid(horizontalSpacing: 8, verticalSpacing: 8) {
-                GridRow {
-                    key(.back, "arrow.uturn.backward", L("Indietro"))
-                    key(.up, "chevron.up", L("Su"))
-                    key(.home, "house", L("Home"))
-                }
-                GridRow {
-                    key(.left, "chevron.left", L("Sinistra"))
-                    key(.enter, "circle.fill", L("OK"))
-                    key(.right, "chevron.right", L("Destra"))
-                }
-                GridRow {
-                    key(.menu, "slider.horizontal.3", L("Menu rapido della TV"))
-                    key(.down, "chevron.down", L("Giù"))
-                    key(.exit, "xmark", L("Esci"))
-                }
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                key(.back, "arrow.uturn.backward", L("Indietro"))
+                key(.up, "chevron.up", L("Su"))
+                key(.home, "house", L("Home"))
             }
-            .frame(maxWidth: .infinity)
+            GridRow {
+                key(.left, "chevron.left", L("Sinistra"))
+                key(.enter, "circle.fill", L("OK"))
+                key(.right, "chevron.right", L("Destra"))
+            }
+            GridRow {
+                key(.menu, "slider.horizontal.3", L("Menu rapido della TV"))
+                key(.down, "chevron.down", L("Giù"))
+                key(.exit, "xmark", L("Esci"))
+            }
         }
+        .frame(maxWidth: .infinity)
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -200,10 +221,8 @@ private struct RemotePad: View {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .medium))
                 .frame(width: 64, height: 36)
-                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .buttonStyle(.plain)
-        .clearGlass(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .buttonStyle(PanelKeyStyle(shape: Capsule()))
         .help(label)
         .accessibilityLabel(label)
     }

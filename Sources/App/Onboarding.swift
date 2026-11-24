@@ -62,12 +62,13 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .padding(.horizontal, 36)
             .padding(.top, 44)
-            .transition(.opacity)
+            .transition(reduceMotion ? .opacity : .sgBlurReplace)
             .id(step)
 
             footer
         }
         .frame(width: Self.size.width, height: Self.size.height)
+        .sguardoAccent(default: .tivu)
         .id(prefs.language)
     }
 
@@ -80,17 +81,16 @@ struct OnboardingView: View {
                 .frame(width: 96, height: 96)
                 .accessibilityHidden(true)
             Text(L("Benvenuto in Tivu"))
-                .font(.largeTitle.weight(.semibold))
-                .fontDesign(.rounded)
+                .font(SG.Font.title)
                 .multilineTextAlignment(.center)
             Text(L("Il telecomando della tua TV, nella barra dei menu: volume, ingressi, accensione."))
-                .font(.title3)
-                .foregroundStyle(.secondary)
+                .font(SG.Font.instruction)
+                .foregroundStyle(SG.Ink.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             Text(L("Il cavo HDMI porta immagine e suono, ma non i comandi: quelli passano dalla rete di casa. Tutto resta tra il Mac e la TV."))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(SG.Font.field)
+                .foregroundStyle(SG.Ink.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 6)
@@ -102,7 +102,7 @@ struct OnboardingView: View {
         StepPage(symbol: "tv", title: L("Abbina la TV"),
                  text: L("Accendi la TV, poi cercala. La prima volta ti chiede di accettare con il telecomando (LG) o mostra un codice da scrivere qui (Android): una volta sola.")) {
             TVFinder(model: model, prefs: prefs)
-            Footnote(L("macOS può chiederti di lasciare che Tivu trovi i dispositivi nella rete locale: serve per parlare con la TV."), font: .callout)
+            Footnote(L("macOS può chiederti di lasciare che Tivu trovi i dispositivi nella rete locale: serve per parlare con la TV."), font: SG.Font.field)
         }
     }
 
@@ -118,7 +118,7 @@ struct OnboardingView: View {
                 KeysPermission(model: model)
                     .padding(.top, 4)
             }
-            Footnote(L("Puoi saltare questo passo: il volume si regola comunque dal pannello e con la rotella sopra l'icona nella barra."), font: .callout)
+            Footnote(L("Puoi saltare questo passo: il volume si regola comunque dal pannello e con la rotella sopra l'icona nella barra."), font: SG.Font.field)
         }
     }
 
@@ -154,20 +154,17 @@ struct OnboardingView: View {
 
             Spacer()
 
-            GlassGroup(spacing: 8) {
-                HStack(spacing: 8) {
-                    if step > 0 {
-                        Button(L("Indietro")) { go(step - 1) }
-                            .glassButton()
-                            .keyboardShortcut(.cancelAction)
-                    }
-                    Button(step == steps - 1 ? L("Inizia") : L("Avanti")) {
-                        if step == steps - 1 { finish() } else { go(step + 1) }
-                    }
-                    .glassProminentButton()
-                    .keyboardShortcut(.defaultAction)
+            HStack(spacing: 10) {
+                if step > 0 {
+                    Button(L("Indietro")) { go(step - 1) }
+                        .buttonStyle(SGCapsuleButtonStyle(.secondary, size: .large))
+                        .keyboardShortcut(.cancelAction)
                 }
-                .controlSize(.large)
+                Button(step == steps - 1 ? L("Inizia") : L("Avanti")) {
+                    if step == steps - 1 { finish() } else { go(step + 1) }
+                }
+                .buttonStyle(SGCapsuleButtonStyle(.primary, size: .large))
+                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(.horizontal, 24)
@@ -175,7 +172,7 @@ struct OnboardingView: View {
     }
 
     private func go(_ next: Int) {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) { step = min(max(0, next), steps - 1) }
+        withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : SG.Motion.standard) { step = min(max(0, next), steps - 1) }
     }
 }
 
@@ -193,12 +190,11 @@ private struct StepPage<Content: View>: View {
                 .foregroundStyle(.tint)
                 .accessibilityHidden(true)
             Text(title)
-                .font(.title.weight(.semibold))
-                .fontDesign(.rounded)
+                .font(SG.Font.title)
                 .accessibilityAddTraits(.isHeader)
             Text(text)
-                .font(.title3)
-                .foregroundStyle(.secondary)
+                .font(SG.Font.instruction)
+                .foregroundStyle(SG.Ink.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 12) { content }
                 .padding(.top, 6)
@@ -217,6 +213,6 @@ private struct Tip: View {
         } icon: {
             Image(systemName: symbol).foregroundStyle(.tint).frame(width: 22)
         }
-        .font(.body)
+        .font(SG.Font.body)
     }
 }
